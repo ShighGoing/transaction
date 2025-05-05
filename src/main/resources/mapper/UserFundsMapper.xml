@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserFundsMapper">
+
+    <!-- 查询用户资金信息 -->
+    <select id="selectUserFundsById" parameterType="java.lang.Integer" resultType="com.example.entity.UserFunds">
+        SELECT * FROM user_funds WHERE user_id = #{userId}
+    </select>
+
+    <!-- 插入用户资金信息 -->
+    <insert id="insertUserFunds" parameterType="com.example.entity.UserFunds">
+        INSERT INTO user_funds (account_balance, frozen_amount, total_income, total_withdrawal, create_time, update_time)
+        VALUES (#{accountBalance}, #{frozenAmount}, #{totalIncome}, #{totalWithdrawal}, #{createTime}, #{updateTime})
+    </insert>
+
+    <!-- 更新用户资金信息 -->
+    <update id="updateUserFunds" parameterType="com.example.entity.UserFunds">
+        UPDATE user_funds
+        SET account_balance = #{accountBalance},
+            frozen_amount = #{frozenAmount},
+            total_income = #{totalIncome},
+            total_withdrawal = #{totalWithdrawal},
+            update_time = #{updateTime},
+            delete_status = #{deleteStatus}
+        WHERE user_id = #{userId}
+    </update>
+</mapper>

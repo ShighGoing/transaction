@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserTransactionRecordsMapper">
+
+    <!-- 查询用户交易记录信息 -->
+    <select id="selectTransactionRecordsById" parameterType="java.lang.Integer" resultType="com.example.entity.UserTransactionRecords">
+        SELECT * FROM user_transaction_records WHERE transaction_id = #{transactionId}
+    </select>
+
+    <!-- 插入用户交易记录信息 -->
+    <insert id="insertTransactionRecords" parameterType="com.example.entity.UserTransactionRecords">
+        INSERT INTO user_transaction_records (user_id, transaction_type, transaction_amount, transaction_time, counterparty_info, transaction_status)
+        VALUES (#{user.userId}, #{transactionType}, #{transactionAmount}, #{transactionTime}, #{counterpartyInfo}, #{transactionStatus})
+    </insert>
+
+    <!-- 更新用户交易记录信息 -->
+    <update id="updateTransactionRecords" parameterType="com.example.entity.UserTransactionRecords">
+        UPDATE user_transaction_records
+        SET user_id = #{user.userId},
+            transaction_type = #{transactionType},
+            transaction_amount = #{transactionAmount},
+            transaction_time = #{transactionTime},
+            counterparty_info = #{counterpartyInfo},
+            transaction_status = #{transactionStatus},
+            delete_status = #{deleteStatus}
+        WHERE transaction_id = #{transactionId}
+    </update>
+</mapper>
