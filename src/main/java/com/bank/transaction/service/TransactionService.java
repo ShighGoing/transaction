@@ -1,39 +1,33 @@
 package com.bank.transaction.service;
 
-import com.bank.transaction.dao.UserFundsMapper;
-import com.bank.transaction.dao.UserTransactionRecordsMapper;
 import com.bank.transaction.entity.UserFunds;
 import com.bank.transaction.entity.UserTransactionRecords;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
+
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
-    @Resource
-    private UserTransactionRecordsMapper userTransactionRecordsMapper;
+    private final List<UserTransactionRecords> userTransactionRecordsList = new ArrayList<>();
+    private final List<UserFunds> userFundsList = new ArrayList<>();
 
-    @Resource
-    private UserFundsMapper userFundsMapper;
-
-    // TODO optional：对与重复创建/修改交易，针对userid设置分布式锁
-    @Transactional(isolation = Isolation.SERIALIZABLE)
     public UserTransactionRecords createTransaction(UserTransactionRecords userTransactionRecords) {
         if (userTransactionRecords.getUserId() == null) {
             throw new RuntimeException("user transaction records user id is null");
         }
 
-        Optional<UserFunds> userFunds = userFundsMapper.selectUserFundsById(userTransactionRecords.getUserId());
-        if (userFunds.isEmpty()) {
-            throw new RuntimeException("user transaction records user funds is null");
+        List<UserFunds> findUserFundsList = this.userFundsList.stream().filter(userFunds -> userFunds.getUserId().equals(userTransactionRecords.getUserId())).toList();
+
+        if (findUserFundsList.size() != 1) {
+            throw new RuntimeException("user transaction records user id is incorrect");
         }
 
-        UserFunds userFund = userFunds.get();
+        UserFunds userFund = findUserFundsList.getFirst();
 
         // 检测操作是否合法，比如是否有足够钱交易
         BigDecimal update = userFund.getAccountBalance().add(userTransactionRecords.getTransactionAmount());
@@ -41,15 +35,21 @@ public class TransactionService {
             throw new RuntimeException("user transaction records account balance is negative");
         }
         userFund.setAccountBalance(update);
-        userFundsMapper.updateUserFunds(userFund);
 
-        userTransactionRecordsMapper.insertTransactionRecords(userTransactionRecords);
+        UserTransactionRecords add = new UserTransactionRecords();
+        add.setTransactionTime(new Date());
+        add.setTransactionType(1);
+        add.setTransactionAmount(userTransactionRecords.getTransactionAmount());
+        add.setDeleteStatus(0);
+        add.setDescription(userTransactionRecords.getDescription());
+        add.setTransactionStatus(0);
+        add.setUserId(userTransactionRecords.getUserId());
+
+        userTransactionRecordsList.add(userTransactionRecords);
 
         return userTransactionRecords;
     }
 
-    // 待优化：变更不可修改交易信息，交易信息只能补充描述？
-    @Transactional(isolation = Isolation.SERIALIZABLE)
     public UserTransactionRecords modifyTransaction(UserTransactionRecords userTransactionRecords) {
         if (userTransactionRecords.getUserId() == null) {
             throw new RuntimeException("user transaction records user id is null");
@@ -59,39 +59,50 @@ public class TransactionService {
             throw new RuntimeException("user transaction records id is null");
         }
 
-        Optional<UserTransactionRecords> res = userTransactionRecordsMapper.selectTransactionRecordsById(userTransactionRecords.getId());
-        if (res.isEmpty()) {
-            throw new RuntimeException("user transaction records is null");
+        List<UserTransactionRecords> foundList = this.userTransactionRecordsList.stream().filter(transactionRecords ->
+                transactionRecords.getUserId().equals(userTransactionRecords.getUserId()) && transactionRecords.getId().equals(userTransactionRecords.getId())).toList();
+
+        if (foundList.isEmpty()) {
+            throw new RuntimeException("user transaction records user id is incorrect");
         }
-        userTransactionRecordsMapper.updateTransactionRecords(userTransactionRecords);
-        return userTransactionRecords;
+
+        UserTransactionRecords update = foundList.getFirst();
+
+        // 只允许变更状态
+        update.setTransactionStatus(userTransactionRecords.getTransactionStatus());
+        return update;
     }
 
-    // TODO 待优化：使用乐观锁优化防止并发问题,代码未完成，撤销交易需要撤回款项
-    @Transactional(isolation = Isolation.SERIALIZABLE)
+
     public boolean deleteTransaction(Long user_id, Long id) {
-        if (id == null) {
+        if (user_id == null) {
             throw new RuntimeException("user transaction records user id is null");
         }
 
-        Optional<UserTransactionRecords> res = userTransactionRecordsMapper.selectTransactionRecordsById(id);
-
-
-        if (res.isEmpty()) {
+        if (id == null) {
             throw new RuntimeException("user transaction records id is null");
         }
-        UserTransactionRecords update = new UserTransactionRecords();
-        update.setId(id);
+
+        List<UserTransactionRecords> foundList = this.userTransactionRecordsList.stream().filter(transactionRecords ->
+                transactionRecords.getUserId().equals(user_id) && transactionRecords.getId().equals(id)).toList();
+
+        if (foundList.isEmpty()) {
+            throw new RuntimeException("user transaction records user id is incorrect");
+        }
+
+        UserTransactionRecords update = foundList.getFirst();
+
+        if (update.getDeleteStatus() == 1) {
+            throw new RuntimeException("user transaction records user id is incorrect");
+        }
+
+        // 只允许变更状态
         update.setDeleteStatus(1);
-
-        // 设置扣款
-        int count = userTransactionRecordsMapper.updateTransactionRecords(update);
-
-        return count == 1;
+        return true;
     }
 
     // TODO 未实现分页
     public List<UserTransactionRecords> listTransactions(Long userId) {
-        return userTransactionRecordsMapper.selectTransactionRecordsById(userId).stream().toList();
+        return this.userTransactionRecordsList.stream().filter(userTransactionRecords -> userTransactionRecords.getUserId().equals(userId)).collect(Collectors.toList());
     }
 }

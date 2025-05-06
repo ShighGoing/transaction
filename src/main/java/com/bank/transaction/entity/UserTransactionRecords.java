@@ -9,10 +9,10 @@ import java.util.Date;
 public class UserTransactionRecords {
     private Long Id;
     private Long userId;
-    private String transactionType;
+    private Integer transactionType;
     private BigDecimal transactionAmount;
     private Date transactionTime;
     private Integer deleteStatus;
-    private String counterpartyInfo;
-    private String transactionStatus;
+    private Integer transactionStatus;
+    private String description;
 }

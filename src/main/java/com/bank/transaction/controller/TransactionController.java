@@ -2,12 +2,15 @@ package com.bank.transaction.controller;
 
 import com.bank.transaction.entity.UserTransactionRecords;
 import com.bank.transaction.service.TransactionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "transactions controller")
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
@@ -18,6 +21,7 @@ public class TransactionController {
     }
 
     @PostMapping
+    @Operation(summary = "创建交易中心")
     public ResponseEntity<UserTransactionRecords> createTransaction(@RequestBody UserTransactionRecords userTransactionRecords) {
         UserTransactionRecords createdUserTransactionRecords = transactionService.createTransaction(userTransactionRecords);
         return new ResponseEntity<>(createdUserTransactionRecords, HttpStatus.CREATED);
